@@ -1,0 +1,154 @@
+
+{"friendlyVersion": "VERSION",
+ "versionDefName": "APP_RESOURCES",
+ "media": [
+    {
+        "type": "png",
+        "defName": "NAV_IMAGE_001",
+        "file": "images/navigation/nav1.png"
+        },
+
+	{
+        "type": "png",
+        "defName": "NAV_IMAGE_002",
+        "file": "images/navigation/nav2.png"
+        },
+
+	{
+        "type": "png",
+        "defName": "NAV_IMAGE_003",
+        "file": "images/navigation/nav3.png"
+        },
+        
+	{
+        "type": "png",
+        "defName": "NAV_IMAGE_004",
+        "file": "images/navigation/nav4.png"
+        },
+
+	{
+        "type": "png",
+        "defName": "NAV_IMAGE_005",
+        "file": "images/navigation/nav5.png"
+        },
+        
+    {
+        "type": "png",
+        "defName": "HELP_IMAGE_001",
+        "file": "images/help/help1.png"
+        },
+
+	{
+        "type": "png",
+        "defName": "HELP_IMAGE_002",
+        "file": "images/help/credits.png"
+        },
+
+    {
+        "type": "png",
+        "defName": "FANDOM_IMAGE_001",
+        "file": "images/fandom/aperture1.png"
+        },
+
+	{
+        "type": "png",
+        "defName": "FANDOM_IMAGE_002",
+        "file": "images/fandom/aperture2.png"
+        },
+
+	{
+        "type": "png",
+        "defName": "FANDOM_IMAGE_003",
+        "file": "images/fandom/triforce1.png"
+        },
+        
+	{
+        "type": "png",
+        "defName": "FANDOM_IMAGE_004",
+        "file": "images/fandom/triforce2.png"
+        },
+        
+    {
+        "type": "png",
+        "defName": "FANTASY_IMAGE_001",
+        "file": "images/fantasy/castle1.png"
+        },
+
+	{
+        "type": "png",
+        "defName": "FANTASY_IMAGE_002",
+        "file": "images/fantasy/castle2.png"
+        },
+
+	{
+        "type": "png",
+        "defName": "FANTASY_IMAGE_003",
+        "file": "images/fantasy/fairy1.png"
+        },
+        
+	{
+        "type": "png",
+        "defName": "FANTASY_IMAGE_004",
+        "file": "images/fantasy/fairy2.png"
+        },
+
+	{
+        "type": "png",
+        "defName": "FANTASY_IMAGE_005",
+        "file": "images/fantasy/barbarian.png"
+        },
+        
+    {
+        "type": "png",
+        "defName": "FAMILY_IMAGE_001",
+        "file": "images/family/child1.png"
+        },
+
+	{
+        "type": "png",
+        "defName": "FAMILY_IMAGE_002",
+        "file": "images/family/child2.png"
+        },
+
+	{
+        "type": "png",
+        "defName": "FAMILY_IMAGE_003",
+        "file": "images/family/wife.png"
+        },
+        
+	{
+        "type": "png",
+        "defName": "MOCKUP_IMAGE_001",
+        "file": "images/mockups/dieroller_mockup.png"
+        },
+
+	{
+        "type": "png",
+        "defName": "MOCKUP_IMAGE_002",
+        "file": "images/mockups/dieroller_mockup2.png"
+        },
+	{
+        "type": "png",
+        "defName": "MOCKUP_IMAGE_003",
+        "file": "images/mockups/gear_mockup1.png"
+        },
+
+	{
+        "type": "png",
+        "defName": "MOCKUP_IMAGE_004",
+        "file": "images/mockups/gear_mockup2.png"
+        },
+	{
+        "type": "png",
+        "defName": "MOCKUP_IMAGE_005",
+        "file": "images/mockups/gear_mockup3.png"
+        },
+        
+	{
+        "type": "png",
+        "defName": "MENU_ICON",
+        "file": "images/menu_icon.png"
+        }
+
+ ]
+}
