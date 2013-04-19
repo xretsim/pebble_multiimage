@@ -2,10 +2,10 @@
 #include "pebble_app.h"
 #include "pebble_fonts.h"
 
-#define TOTAL_SLIDES 24  //TOTAL is the total number of images in the data setup below. Important to get this right.
+#define TOTAL_SLIDES 26  //TOTAL is the total number of images in the data setup below. Important to get this right.
 
 #define MY_UUID { 0x8C, 0x0C, 0x3B, 0x6E, 0xF9, 0xFA, 0x41, 0x8F, 0xBC, 0xFE, 0x25, 0x81, 0xCB, 0x5E, 0xFC, 0xAD }
-PBL_APP_INFO(MY_UUID, "MultiImage", "Glenn Loos-Austin", 1, 0 /* App version */, RESOURCE_ID_MENU_ICON, APP_INFO_STANDARD_APP);
+PBL_APP_INFO(MY_UUID, "MultiImage", "Glenn Loos-Austin", 1, 1 /* App version */, RESOURCE_ID_MENU_ICON, APP_INFO_STANDARD_APP);
 
 //Some of the initial code for this project comes from the Family source code by Darren Oakey,
 //which provided an excellent starting point for this project.
@@ -16,8 +16,7 @@ TextLayer _currentTime;
 BitmapLayer _currentPicture;
 int _totalImages = TOTAL_SLIDES;  //used to do some boundary checking, and to run an initialization loop.
 
-BmpContainer _image0; // we'll be switching back and forth between these, so that we can deinit one after initing and
-BmpContainer _image1; // switching to the other.
+BmpContainer _image0; // holds our images
 
 int _bmpResourceID[TOTAL_SLIDES];  //These 4 arrays should probably be converted to object properties.
 int _targetImage[TOTAL_SLIDES];    
@@ -27,9 +26,6 @@ int _prevImage[TOTAL_SLIDES];
 //tracking globals
 
 int _currentImage=0;    //the index of the image that is currently displayed.
-int _oldTarget=0;       //the index of the image that was last displayed as part of a refresh, to prevent redrawing what's already showing.
-int _currentBmp = 0;    //used to swtich back and forth between _image1 and _image2, tracking which one is currently in use.
-int _oldBmp = 1;        //used to switch back and forth between _image1 and _image2, tracking which one should be clear.
 bool _hidingTime=true; //indicates whether or not the time should be currently hidden. true=not showing. false=showing.
 
 //
@@ -52,31 +48,38 @@ void setupTextLayer( TextLayer *layer, Window *parent, int x, int y, int width, 
 //
 void handle_deinit(AppContextRef ctx) {
     (void)ctx;
-    if (_oldBmp==0) bmp_deinit_container(&_image0);
-    if (_oldBmp==1) bmp_deinit_container(&_image1);    
+    bmp_deinit_container(&_image0);    
 }
+
+
+//
+//Set container image function
+//attempt to only have one image container inited at any given time, so as to avoid memory leaks/out of memory.
+//previously tried to switch back and forth, now using a technique I observed in the 91dub example app, from
+// where the following function comes.
+//
+void set_container_image(BmpContainer *bmp_container, const int resource_id, GPoint origin) {
+    
+    layer_remove_from_parent(&bmp_container->layer.layer);
+    bmp_deinit_container(bmp_container);
+    
+    bmp_init_container(resource_id, bmp_container);
+    
+    GRect frame = layer_get_frame(&bmp_container->layer.layer);
+    frame.origin.x = origin.x;
+    frame.origin.y = origin.y;
+    layer_set_frame(&bmp_container->layer.layer, frame);
+    
+    layer_add_child(&_currentPicture.layer, &bmp_container->layer.layer);
+}
+
 
 //
 //Main screen drawing routine
-//Switches back and forth between _image0 and _image1 so that they can be alternately inited and deinited.
+//now very dull, calls set_container_image.
 //
-void ScreenChange(int target) {
-    if(_oldTarget != target)
-    {
-        _currentBmp++;
-        if(_currentBmp>1) _currentBmp=0;
-        if (_currentBmp==0) bmp_init_container( _bmpResourceID[target], &_image0);
-        if (_currentBmp==1) bmp_init_container( _bmpResourceID[target], &_image1);
-    }
-    if (_currentBmp==0) bitmap_layer_set_bitmap( &_currentPicture, &(_image0.bmp) );
-    if (_currentBmp==1) bitmap_layer_set_bitmap( &_currentPicture, &(_image1.bmp) );
-    if(_oldTarget != target)
-    {
-        if (_oldBmp==0) bmp_deinit_container(&_image0);
-        if (_oldBmp==1) bmp_deinit_container(&_image1);
-        _oldTarget = target;
-        _oldBmp = _currentBmp;
-    }
+void ScreenChange(int target) {    
+    set_container_image(&_image0,_bmpResourceID[target],GPoint(0, 0));
 }
 
 //
@@ -187,11 +190,11 @@ void handle_init(AppContextRef ctx) {
         _prevImage[id] = id+4;                              //for slide 0, up button should jump four slides forward to wrap menu.
         bmp_init_container( _bmpResourceID[id], &_image0);  //assign to _image0 so that inital screendraw can happen.
     _bmpResourceID[++id] = RESOURCE_ID_NAV_IMAGE_002;
-        _targetImage[id] = id+13; //fantasy                 //fantasy is currently 13 slides forward. select should take us there.
+        _targetImage[id] = id+15; //fantasy                 //fantasy is currently 13 slides forward. select should take us there.
     _bmpResourceID[++id] = RESOURCE_ID_NAV_IMAGE_003;
-        _targetImage[id] = id+9; //family                   //alas, these offsets are somewhat fragile.
+        _targetImage[id] = id+11; //family                   //alas, these offsets are somewhat fragile.
     _bmpResourceID[++id] = RESOURCE_ID_NAV_IMAGE_004;
-        _targetImage[id] = id+16; //mockups
+        _targetImage[id] = id+18; //mockups
     _bmpResourceID[++id] = RESOURCE_ID_NAV_IMAGE_005;
         _targetImage[id] = id+1;  //help
         _nextImage[id] = id-4;                              //for slide 4, down button should jump four slides backward to wrap menu.
@@ -204,11 +207,13 @@ void handle_init(AppContextRef ctx) {
 
     //Fandom Group
     _bmpResourceID[++id] = RESOURCE_ID_FANDOM_IMAGE_001;
-        _prevImage[id] = id+3;
+        _prevImage[id] = id+5;
     _bmpResourceID[++id] = RESOURCE_ID_FANDOM_IMAGE_002;
     _bmpResourceID[++id] = RESOURCE_ID_FANDOM_IMAGE_003;
     _bmpResourceID[++id] = RESOURCE_ID_FANDOM_IMAGE_004;
-        _nextImage[id] = id-3;
+    _bmpResourceID[++id] = RESOURCE_ID_FANDOM_IMAGE_005;
+    _bmpResourceID[++id] = RESOURCE_ID_FANDOM_IMAGE_006;
+        _nextImage[id] = id-5;
     
     //Family Group
     _bmpResourceID[++id] = RESOURCE_ID_FAMILY_IMAGE_001;
