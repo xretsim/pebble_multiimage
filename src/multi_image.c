@@ -2,6 +2,8 @@
 #include "pebble_app.h"
 #include "pebble_fonts.h"
 
+#define TOTAL_SLIDES 24  //TOTAL is the total number of images in the data setup below. Important to get this right.
+
 #define MY_UUID { 0x8C, 0x0C, 0x3B, 0x6E, 0xF9, 0xFA, 0x41, 0x8F, 0xBC, 0xFE, 0x25, 0x81, 0xCB, 0x5E, 0xFC, 0xAD }
 PBL_APP_INFO(MY_UUID, "MultiImage", "Glenn Loos-Austin", 1, 0 /* App version */, RESOURCE_ID_MENU_ICON, APP_INFO_STANDARD_APP);
 
@@ -12,23 +14,27 @@ Window window;
 TextLayer _currentDate;
 TextLayer _currentTime;
 BitmapLayer _currentPicture;
-int _totalImages = 24;
-BmpContainer _image0;
-BmpContainer _image1;
-int _bmpResourceID[24];
-int _targetImage[24];
-int _nextImage[24];
-int _prevImage[24];
-int _currentImage=0;
-int _oldTarget=0;
-int _currentBmp = 0;
-int _oldBmp = 1;
-bool _showingTime=true;
+int _totalImages = TOTAL_SLIDES;  //used to do some boundary checking, and to run an initialization loop.
 
-//static char debugText[] = "Launched.\nNew Line Check\n";
+BmpContainer _image0; // we'll be switching back and forth between these, so that we can deinit one after initing and
+BmpContainer _image1; // switching to the other.
+
+int _bmpResourceID[TOTAL_SLIDES];  //These 4 arrays should probably be converted to object properties.
+int _targetImage[TOTAL_SLIDES];    
+int _nextImage[TOTAL_SLIDES];
+int _prevImage[TOTAL_SLIDES];
+
+//tracking globals
+
+int _currentImage=0;    //the index of the image that is currently displayed.
+int _oldTarget=0;       //the index of the image that was last displayed as part of a refresh, to prevent redrawing what's already showing.
+int _currentBmp = 0;    //used to swtich back and forth between _image1 and _image2, tracking which one is currently in use.
+int _oldBmp = 1;        //used to switch back and forth between _image1 and _image2, tracking which one should be clear.
+bool _hidingTime=true; //indicates whether or not the time should be currently hidden. true=not showing. false=showing.
 
 //
-// sets up a text layer - defaulting to white on black
+// sets up a text layer
+// (what layer, what window, x coord, y coord, width, height, text color, background color, text alignment)
 //
 void setupTextLayer( TextLayer *layer, Window *parent, int x, int y, int width, int height, GFont font, GColor colorChoice, GColor bgChoice, GTextAlignment whatAlign )
 {
@@ -41,19 +47,19 @@ void setupTextLayer( TextLayer *layer, Window *parent, int x, int y, int width, 
     layer_add_child(&parent->layer, &layer->layer);
 }
 
-
+//
+//only one image should be inited, so we figure out whether it's _image1 or _image2 and deinit it.
+//
 void handle_deinit(AppContextRef ctx) {
     (void)ctx;
     if (_oldBmp==0) bmp_deinit_container(&_image0);
-    if (_oldBmp==1) bmp_deinit_container(&_image1);
-//    for(int i=0;i<_totalImages;i++)
-//    {
-//        bmp_deinit_container(&_image[i]);
-//    }
-    
+    if (_oldBmp==1) bmp_deinit_container(&_image1);    
 }
 
-
+//
+//Main screen drawing routine
+//Switches back and forth between _image0 and _image1 so that they can be alternately inited and deinited.
+//
 void ScreenChange(int target) {
     if(_oldTarget != target)
     {
@@ -73,8 +79,9 @@ void ScreenChange(int target) {
     }
 }
 
+//
 // Click config handlers
-
+//
 void up_single_click_handler(ClickRecognizerRef recognizer, Window *window) {
     if (_prevImage[_currentImage] == -1)
     {
@@ -121,18 +128,17 @@ void select_click_handler(ClickRecognizerRef recognizer, Window *window) {
 }
 
 void select_long_click_handler(ClickRecognizerRef recognizer, Window *window) {
-    _showingTime = !_showingTime;
-    layer_set_hidden(&_currentTime.layer, _showingTime);
-    layer_set_hidden(&_currentDate.layer, _showingTime);
+    _hidingTime = !_hidingTime;
+    layer_set_hidden(&_currentTime.layer, _hidingTime);
+    layer_set_hidden(&_currentDate.layer, _hidingTime);
 }
 
+//
 // Click config provider
-
+//
 void config_provider(ClickConfig **config, Window *window) {
     // See ui/click.h for more information and default values.
     
-    // single click / repeat-on-hold config:
-    //config[BUTTON_ID_SELECT]->click.handler = (ClickHandler) select_single_click_handler;
     config[BUTTON_ID_UP]->click.handler = (ClickHandler) up_single_click_handler;
     config[BUTTON_ID_UP]->long_click.handler = (ClickHandler) up_long_click_handler;
     config[BUTTON_ID_DOWN]->click.handler = (ClickHandler) down_single_click_handler;
@@ -158,7 +164,7 @@ void handle_init(AppContextRef ctx) {
     window_set_click_config_provider(&window, (ClickConfigProvider) config_provider);
     
     //
-    // Load the bitmaps
+    // Initialize the bitmap linking arrays to link nowhere.
     //
     for(int i=0;i<_totalImages;i++)
     {
@@ -167,24 +173,28 @@ void handle_init(AppContextRef ctx) {
         _prevImage[i]=-1;
     }
     
-    //Nav group
+    //
+    //Slide group setup
+    //
+    //id is incremented for each resourceID we set.
+    //remember to set the 4 array sizes to to number of images up in the global declarations.
     //
     
-    int id=0;
+    int id=0; //start with ID 0.
     
     _bmpResourceID[id] = RESOURCE_ID_NAV_IMAGE_001;
-        _targetImage[id] = id+7; //Fandom
-        _prevImage[id] = id+4;
-        bmp_init_container( _bmpResourceID[id], &_image0);
+        _targetImage[id] = id+7; //Fandom                   //fandom is 7 slides forward. select should take us there.
+        _prevImage[id] = id+4;                              //for slide 0, up button should jump four slides forward to wrap menu.
+        bmp_init_container( _bmpResourceID[id], &_image0);  //assign to _image0 so that inital screendraw can happen.
     _bmpResourceID[++id] = RESOURCE_ID_NAV_IMAGE_002;
-        _targetImage[id] = id+13; //fantasy
+        _targetImage[id] = id+13; //fantasy                 //fantasy is currently 13 slides forward. select should take us there.
     _bmpResourceID[++id] = RESOURCE_ID_NAV_IMAGE_003;
-        _targetImage[id] = id+9; //family
+        _targetImage[id] = id+9; //family                   //alas, these offsets are somewhat fragile.
     _bmpResourceID[++id] = RESOURCE_ID_NAV_IMAGE_004;
         _targetImage[id] = id+16; //mockups
     _bmpResourceID[++id] = RESOURCE_ID_NAV_IMAGE_005;
         _targetImage[id] = id+1;  //help
-        _nextImage[id] = id-4;
+        _nextImage[id] = id-4;                              //for slide 4, down button should jump four slides backward to wrap menu.
 
     //Help Group
     _bmpResourceID[++id] = RESOURCE_ID_HELP_IMAGE_001;
@@ -225,6 +235,10 @@ void handle_init(AppContextRef ctx) {
     _bmpResourceID[++id] = RESOURCE_ID_MOCKUP_IMAGE_005;
     _nextImage[id] = id-4;
 
+    //
+    //Slide group setup end
+    //
+    
     
     //
     // create the bitmap layer at the back
@@ -235,7 +249,7 @@ void handle_init(AppContextRef ctx) {
     ScreenChange(0); // do initial screen draw.
     
     //
-    // set the font we are using
+    // set the font we are using for time display.
     //
     GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
     GFont font2 = fonts_get_system_font(FONT_KEY_GOTHIC_18);
@@ -248,27 +262,24 @@ void handle_init(AppContextRef ctx) {
     setupTextLayer( &_currentDate, &window, 0, 168-23, 144, 23, font2, GColorWhite, GColorBlack, GTextAlignmentRight);
     setupTextLayer( &_currentTime, &window, 0, 168-28, 144, 28, font, GColorWhite, GColorClear, GTextAlignmentLeft);
     
-    layer_set_hidden(&_currentTime.layer, _showingTime);
-    layer_set_hidden(&_currentDate.layer, _showingTime);
+    layer_set_hidden(&_currentTime.layer, _hidingTime);
+    layer_set_hidden(&_currentDate.layer, _hidingTime);
 }
 
 
 //
-// ticks every minute, updating the time, date and
+// ticks every minute, updating the time and date.
 //
 void handle_minute_tick(AppContextRef ctx, PebbleTickEvent *t)
 {
     //
-    // this seems pointless
+    // this seems pointless.
+    // Glenn: Left this in because I don't know what it does.
     //
     (void)ctx;
 
-    //
-    // choose the background image - we swap every two minutes
-    //
     PblTm *tickTime = t->tick_time;
-    //int minute = tickTime->tm_min;
-    
+   
     //
     // set the date - only changing it when the day changes
     // format strings here: http://www.gnu.org/software/emacs/manual/html_node/elisp/Time-Parsing.html
@@ -290,7 +301,6 @@ void handle_minute_tick(AppContextRef ctx, PebbleTickEvent *t)
     const char *timeFormat = clock_is_24h_style() ? "%R" : "%l:%M";
     string_format_time(timeText, sizeof(timeText), timeFormat, tickTime);
     text_layer_set_text(&_currentTime, timeText);
-
 }
 
 //
